@@ -160,6 +160,10 @@ class Nomo_Axis:
         if type == 'manual arrow':
             self._make_manual_axis_arrow_(manual_axis_data)
             self.draw_axis(canvas)
+        if type == 'circular':
+            self._make_circular_axis_(start=start, stop=stop, f=func_f, g=func_g, turn=turn,
+                                         base_start=base_start_1, base_stop=base_stop_1)
+            self.draw_axis(canvas)
         if type == 'general':
             self._make_general_axis_()
         # self.draw_axis(canvas)
@@ -949,6 +953,107 @@ class Nomo_Axis:
         self.text_2_list = tick_2_list
         # self.text_3_list=tick_3_list
         # self.text_4_list=tick_4_list
+
+    def _make_circular_axis_(self, start, stop, f, g, turn=1, base_start=None, base_stop=None):
+        """
+        Produce an axis with a circular scale according to functions f(u) and g(u)
+        with values u in range [start, stop].
+        Essentially _make_linear_axis_ with call to find_circular_ticks. Could be refactored.
+        """
+        # line lists
+        main_line = pyx.path.path(pyx.path.moveto(f(start), g(start)))
+        line = pyx.path.path(pyx.path.moveto(f(start), g(start)))
+        thin_line = pyx.path.path(pyx.path.moveto(f(start), g(start)))
+        # text list
+        texts = []
+        # let's find tick positions
+        tick_0_list, tick_1_list, tick_2_list, tick_3_list, tick_4_list, start_ax, stop_ax = \
+            find_circular_ticks(start, stop, base_start, base_stop, self.axis_appear['scale_max'])
+        # let's find tick angles
+        dx_units_0, dy_units_0, angles_0 = find_tick_directions(tick_0_list, f, g, self.side, start, stop,
+                                                                full_angle=self.axis_appear['full_angle'],
+                                                                extra_angle=self.axis_appear['extra_angle'],
+                                                                turn_relative=self.axis_appear['turn_relative'])
+        dx_units_1, dy_units_1, angles_1 = find_tick_directions(tick_1_list, f, g, self.side, start, stop,
+                                                                full_angle=self.axis_appear['full_angle'],
+                                                                extra_angle=self.axis_appear['extra_angle'],
+                                                                turn_relative=self.axis_appear['turn_relative'])
+        dx_units_2, dy_units_2, angles_2 = find_tick_directions(tick_2_list, f, g, self.side, start, stop,
+                                                                full_angle=self.axis_appear['full_angle'],
+                                                                extra_angle=self.axis_appear['extra_angle'],
+                                                                turn_relative=self.axis_appear['turn_relative'])
+        dx_units_3, dy_units_3, angles_3 = find_tick_directions(tick_3_list, f, g, self.side, start, stop,
+                                                                full_angle=self.axis_appear['full_angle'],
+                                                                extra_angle=self.axis_appear['extra_angle'],
+                                                                turn_relative=self.axis_appear['turn_relative'])
+        dx_units_4, dy_units_4, angles_4 = find_tick_directions(tick_4_list, f, g, self.side, start, stop,
+                                                                full_angle=self.axis_appear['full_angle'],
+                                                                extra_angle=self.axis_appear['extra_angle'],
+                                                                turn_relative=self.axis_appear['turn_relative'])
+
+        # tick level 0
+        if self.tick_levels > 0:
+            self._make_tick_lines_(tick_0_list, line, f, g, dx_units_0, dy_units_0,
+                                   self.axis_appear['grid_length_0'])
+        # text level 0 - 90deg
+        if self.tick_text_levels > 0:
+            self._make_texts_(tick_0_list, texts, f, g, dx_units_0, dy_units_0, angles_0,
+                              self.axis_appear['text_distance_0'],
+                              self.axis_appear['text_size_0'])
+        # tick level 1 - 45deg
+        if self.tick_levels == 2:
+            self._make_tick_lines_(tick_1_list, line, f, g, dx_units_1, dy_units_1,
+                                   self.axis_appear['grid_length_1'])
+        # text level 1
+        if self.tick_text_levels == 2:
+            self._make_texts_(tick_1_list, texts, f, g, dx_units_1, dy_units_1, angles_1,
+                              self.axis_appear['text_distance_1'],
+                              self.axis_appear['text_size_1'])
+        # tick level 2 - 10deg
+        if self.tick_levels > 2:
+            self._make_tick_lines_(tick_2_list, line, f, g, dx_units_2, dy_units_2,
+                                   self.axis_appear['grid_length_2'])
+        # text level 2
+        if self.tick_text_levels > 2:
+            self._make_texts_(tick_2_list, texts, f, g, dx_units_2, dy_units_2, angles_2,
+                              self.axis_appear['text_distance_2'],
+                              self.axis_appear['text_size_2'])
+        # tick level 3 - 5deg
+        if self.tick_levels > 3:
+            self._make_tick_lines_(tick_3_list, thin_line, f, g, dx_units_3, dy_units_3,
+                                   self.axis_appear['grid_length_3'])
+        # text level 3
+        if self.tick_text_levels > 3:
+            self._make_texts_(tick_3_list, texts, f, g, dx_units_3, dy_units_3, angles_3,
+                              self.axis_appear['text_distance_3'],
+                              self.axis_appear['text_size_3'])
+        # tick level 4 - 1deg
+        if self.tick_levels > 4:
+            self._make_tick_lines_(tick_4_list, thin_line, f, g, dx_units_4, dy_units_4,
+                                   self.axis_appear['grid_length_4'])
+        # text level 4
+        if self.tick_text_levels > 4:
+            self._make_texts_(tick_4_list, texts, f, g, dx_units_4, dy_units_4, angles_4,
+                              self.axis_appear['text_distance_4'],
+                              self.axis_appear['text_size_4'])
+        # make main line
+        self._make_main_line_(start, stop, main_line, f, g)
+
+        self.line = line
+        self.thin_line = thin_line
+        self.main_line = main_line
+        self.texts = texts
+        self.tick_0_list = tick_0_list
+        self.tick_1_list = tick_1_list
+        self.tick_2_list = tick_2_list
+        self.tick_3_list = tick_3_list
+        self.tick_4_list = tick_4_list
+
+        self.text_0_list = tick_0_list
+        self.text_1_list = tick_1_list
+        self.text_2_list = tick_2_list
+        self.text_3_list = tick_3_list
+        self.text_4_list = tick_4_list
 
     def _make_texts_(self, tick_list, text_list, f, g, dx_units, dy_units, angles,
                      text_distance, text_size, manual_texts=[]):
@@ -1798,6 +1903,62 @@ def find_linear_ticks(start, stop, base_start=None, base_stop=None, scale_max_0=
            start_ax, stop_ax
 
 
+def find_circular_ticks(start, stop, base_start=None, base_stop=None, scale_max_0=None):
+    """
+    finds tick values for circular axis
+    """
+
+    if start > stop:
+        start, stop = stop, start
+    if (base_start != None) and (base_stop != None):
+        scale_max = math.ceil(math.fabs(base_start - base_stop) - 0.5)
+    else:
+        scale_max = math.ceil(math.fabs(start - stop) - 0.5)
+    if scale_max_0 != None:
+        scale_max = scale_max_0  # set range manually
+
+    tick_0 = 90.0  # scale_max / 4.0 # 90deg
+    #tick_1 = 45.0  # scale_max / 8.0 # 45deg
+    #tick_2 = 10.0  # scale_max / 36.0 # 10deg
+    #tick_3 = 5.0  # scale_max / 72.0 # 5deg
+    tick_4 = 1  # scale_max / 360.0 # 1deg
+
+    tick_0_list = []
+    tick_1_list = []
+    tick_2_list = []
+    tick_3_list = []
+    tick_4_list = []
+    start_major = _find_closest_tick_number_(start, tick_0) - tick_0
+    #stop_major = _find_closest_tick_number_(stop, tick_0) + tick_0
+
+    #if (base_start != None) and (base_stop != None):
+    #    start_major = 0.0
+
+    start_ax = None
+    stop_ax = None
+    steps = (stop - start_major) / tick_4 + 2
+
+    for step in range(0, int(steps)):
+        number = start_major + step * tick_4
+        if number >= start and number <= (stop * (1 + 1e-6)):
+            if start_ax == None:
+                start_ax = number
+            stop_ax = number
+            if step % 90 == 0:
+                tick_0_list.append(number)
+            if step % 45 == 0 and step % 90 != 0:
+                tick_1_list.append(number)
+            if step % 10 == 0 and step % 90 != 0:
+                tick_2_list.append(number)
+            if step % 5 == 0 and step % 10 != 0 and step % 90 != 0:
+                tick_3_list.append(number)
+            if step % 1 == 0 and step % 5 != 0 and step % 10 != 0 and step % 45 != 0 and step % 90 != 0:
+                tick_4_list.append(number)
+
+    return tick_0_list, tick_1_list, tick_2_list, tick_3_list, tick_4_list, \
+        start_ax, stop_ax
+
+
 def find_log_ticks(start, stop):
     """
     finds tick values for linear axis
@@ -2492,8 +2653,8 @@ def core_ticker(start, stop, f, g, tick_levels, text_levels, distance_limit_tick
                                                       distance_limit=tick_info['text_distance_smart'])
     texts = [te0, te1, te2, te3, te4]
     # suppress levels
-    print("tick_levels:%i" % tick_levels)
-    print("text_levels:%i" % text_levels)
+    #print("tick_levels:%i" % tick_levels)
+    #print("text_levels:%i" % text_levels)
     ticks = ticks[:tick_levels]
     texts = texts[:text_levels]
     # here we remove texts from list if there is no tick with same number
